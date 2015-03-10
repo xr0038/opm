@@ -1,0 +1,13 @@
+lib/
+include/
+src/*
+!src/*.h
+!src/*.cc
+!src/Makefile
+example/*
+!example/*.cc
+!example/Makefile
+!example/data
+example/data/*
+!example/data/*.h
+!example/data/*.sav
