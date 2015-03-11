@@ -16,15 +16,29 @@
 
 FILE *fd = NULL;
 wcsprm* wcs;
-
+wcsprm* new_wcs;
 
 void
 run_matching
 (const double Nmatched,
  const std::vector<opm::xym> &ref_,
  const std::vector<opm::xym> &obj_,
- const char* filename_1, const char* filename_2)
+ const char* filename)
 {
+  wcsini(0, 2, wcs);
+  wcs->crpix[0] = 512;
+  wcs->crpix[1] = 512;
+  wcs->cdelt[0] = -0.00026278;
+  wcs->cdelt[1] =  0.00026278;
+  wcs->crval[0] =  160.;
+  wcs->crval[1] =   35.;
+  sprintf(wcs->cunit[0],"deg");
+  sprintf(wcs->cunit[1],"deg");
+  sprintf(wcs->ctype[0],"RA---TAN");
+  sprintf(wcs->ctype[1],"DEC--TAN");
+  sprintf(wcs->wcsname,"FK5");
+  wcsset(wcs);
+
   opm::referencelist ref
     = opm::generate_referencelist(ref_,wcs);
   opm::database refdb = opm::generate_database(ref);
@@ -35,11 +49,13 @@ run_matching
 
   opm::matched_list matched;
   for (auto &p : objdb) {
-    std::vector<opm::conversion> x = opm::pre::match(p, .3, .3, refdb);
+    std::vector<opm::conversion> x = opm::pre::match(p, .2, .2, refdb);
     for (auto &v : x) {
-      fprintf(stderr,"%.5lf,%.5lf,%.5lf,%.5lf,%.5lf,%.5lf\n",
+      fprintf(stderr,
+              "(R11,R12,R21,R22,Tx,Ty) = \n"
+              "    (%.5lf, %.5lf, %.5lf, %.5lf, %.5lf, %.5lf)\n",
               v[0],v[1],v[2],v[3],v[4],v[5]);
-      matched = opm::final::match(v, obj, 1.0e2, ref);
+      matched = opm::final::match(v, obj, 50., ref);
       fprintf(stderr,"matched.size(): %ld\n", matched.size());
       if (matched.size() >= Nmatched) goto match_success;
     }
@@ -47,21 +63,34 @@ run_matching
   return;
 
  match_success:
-  fprintf(fd, "plot '%s' u 1:2 not ","data/medium_permute.sav");
-  fprintf(fd, "w p lw 0.2 ps 2 pt 6\n");
-  fprintf(fd, "replot '%s' u 1:2 t 'REFERENCE' ", filename_1);
-  fprintf(fd, "w p ps 1 pt 5; pause 1\n");
-  fprintf(fd, "replot '%s' u 1:2 t 'OBJECT' ", filename_2);
-  fprintf(fd, "w p ps 2 lw 2 pt 1; pause 1\n");
-  fprintf(fd, "replot '-' u 1:2:($3-$1):($4-$2) t 'Match' w vector ");
-  fprintf(fd, "filled lw 2 \n");
+  printf("## CROSS CHECK ##\n");
+  wcscopy(1, wcs, new_wcs);
+  update_wcsprm(new_wcs, matched);
+  fprintf(fd,"$DATA << EOD\n");
   for (auto &p : matched) {
+    int status;
+    double world[2], new_world[2];
+    double imgcrd[2], phi[1], theta[1];
+    double pixcrd[2] = {p.first.x, p.first.y};
+    wcsp2s(wcs,     1, 2, pixcrd, imgcrd, phi, theta, world, &status);
+    wcsp2s(new_wcs, 1, 2, pixcrd, imgcrd, phi, theta, new_world, &status);
+    printf("(%8.4lf %8.4lf) (%8.4lf %8.4lf) [%lf %lf]\n",
+           world[0],world[1],new_world[0],new_world[1],
+           new_world[0]-p.second.x,new_world[1]-p.second.y);
     fprintf(fd,"%.5lf %.5lf %.5lf %.5lf %.5lf %.5lf\n",
-            p.first.x, p.first.y,
-            p.second.xi(), p.second.eta(),
+            world[0],world[1], new_world[0], new_world[1],
             p.second.x, p.second.y);
   }
-  fprintf(fd,"e\n" );
+  printf("## CROSS CHECK ##\n");
+  fprintf(fd,"EOD\n" );
+  fprintf(fd, "plot '%s' u 1:2 not ","data/medium_ref.sav");
+  fprintf(fd, "w p lw 0.2 ps 2 pt 6\n");
+  fprintf(fd, "replot '%s' u 1:2 t 'REFERENCE' ", filename);
+  fprintf(fd, "w p ps 0.5 pt 5; pause 1\n");
+  fprintf(fd, "replot $DATA u 1:2 t 'OBJECT' ");
+  fprintf(fd, "w p ps 2 lw 2 pt 1; pause 1\n");
+  fprintf(fd, "replot $DATA u 1:2:($3-$1):($4-$2) t 'Match' w vector ");
+  fprintf(fd, "filled lw 2 \n");
   fprintf(fd,"pause 3\n");
   fflush(fd);
 }
@@ -80,20 +109,7 @@ int
 main(int argc, char *argv[])
 {
   wcs = new wcsprm;
-  wcsini(0, 2, wcs);
-  wcs->crpix[0] = 512;
-  wcs->crpix[1] = 512;
-  wcs->cdelt[0] = -0.00026278;
-  wcs->cdelt[1] =  0.00026278;
-  wcs->crval[0] =  160.;
-  wcs->crval[1] =   35.;
-  sprintf(wcs->cunit[0],"deg");
-  sprintf(wcs->cunit[1],"deg");
-  sprintf(wcs->ctype[0],"RA---TAN");
-  sprintf(wcs->ctype[1],"DEC--TAN");
-  sprintf(wcs->wcsname,"FK5");
-  wcsset(wcs);
-
+  new_wcs = new wcsprm;
   fd = popen("gnuplot","w");
   signal(SIGINT, killgnuplot);
 
@@ -101,42 +117,49 @@ main(int argc, char *argv[])
   fprintf(fd,"set key rmargin vertical Left\n");
   fprintf(fd,"set key samplen 1\n");
   fprintf(fd,"set grid x y mx my\n");
-  fprintf(fd,"set xr [-7000:7000]\n");
-  fprintf(fd,"set yr [-7000:7000]\n");
+  fprintf(fd,"set grid lt 0 lw 1, lt 0 lw 0.5\n");
+  fprintf(fd,"set xr [157:163]\n");
+  fprintf(fd,"set yr [33:37]\n");
+  fprintf(fd,"set xtics 0,1,200 format '%%.0f'\n");
+  fprintf(fd,"set ytics 0,1,200 format '%%.0f'\n");
+  fprintf(fd,"set mxtics 5\n");
+  fprintf(fd,"set mytics 5\n");
   
   run_matching(6, opm_test::small_ref, opm_test::medium_permute,
-               "data/small_permute.sav", "data/medium_permute.sav");
+               "data/small_ref.sav");
   run_matching(6, opm_test::small_ref, opm_test::medium_posshift,
-               "data/small_permute.sav", "data/medium_posshift.sav");
+               "data/small_ref.sav");
   run_matching(6, opm_test::small_ref, opm_test::medium_posrotate,
-               "data/small_permute.sav", "data/medium_posrotate.sav");
+               "data/small_ref.sav");
   run_matching(6, opm_test::small_ref, opm_test::medium_posrotshift,
-               "data/small_permute.sav", "data/medium_posrotshift.sav");
+               "data/small_ref.sav");
   run_matching(6, opm_test::small_ref, opm_test::medium_target,
-               "data/small_permute.sav", "data/medium_target.sav");
+               "data/small_ref.sav");
 
   run_matching(36, opm_test::medium_ref, opm_test::medium_permute,
-               "data/medium_permute.sav", "data/medium_permute.sav");
+               "data/medium_ref.sav");
   run_matching(36, opm_test::medium_ref, opm_test::medium_posshift,
-               "data/medium_permute.sav", "data/medium_posshift.sav");
+               "data/medium_ref.sav");
   run_matching(36, opm_test::medium_ref, opm_test::medium_posrotate,
-               "data/medium_permute.sav", "data/medium_posrotate.sav");
+               "data/medium_ref.sav");
   run_matching(36, opm_test::medium_ref, opm_test::medium_posrotshift,
-               "data/medium_permute.sav", "data/medium_posrotshift.sav");
+               "data/medium_ref.sav");
   run_matching(36, opm_test::medium_ref, opm_test::medium_target,
-               "data/medium_permute.sav", "data/medium_target.sav");
+               "data/medium_ref.sav");
 
   run_matching(36, opm_test::large_ref, opm_test::medium_permute,
-               "data/large_permute.sav", "data/medium_permute.sav");
+               "data/large_ref.sav");
   run_matching(36, opm_test::large_ref, opm_test::medium_posshift,
-               "data/large_permute.sav", "data/medium_posshift.sav");
+               "data/large_ref.sav");
   run_matching(36, opm_test::large_ref, opm_test::medium_posrotate,
-               "data/large_permute.sav", "data/medium_posrotate.sav");
+               "data/large_ref.sav");
   run_matching(36, opm_test::large_ref, opm_test::medium_posrotshift,
-               "data/large_permute.sav", "data/medium_posrotshift.sav");
+               "data/large_ref.sav");
   run_matching(36, opm_test::large_ref, opm_test::medium_target,
-               "data/large_permute.sav", "data/medium_target.sav");
+               "data/large_ref.sav");
 
+  delete wcs;
+  delete new_wcs;
   pclose(fd);
   return 0;
 }
