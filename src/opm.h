@@ -287,10 +287,6 @@ namespace opm
   typedef std::vector<opm::object> objectlist;
   /** @brief define objectlist by vector<object> */
   typedef std::vector<opm::reference> referencelist;
-  /** @brief define matched_star by pair<object,reference> */
-  typedef std::pair<opm::object, opm::reference> matched_star;
-  /** @brief define matched_list by vector<matched_star> */
-  typedef std::vector<matched_star> matched_list;
 
   /**
    * @brief 3 天体の作る三角形を表現するクラス
@@ -376,6 +372,10 @@ namespace opm
   /** @brief define database by array<triangles,6> */
   typedef std::array< triangles, 6 > database;
 
+  /** @brief define matched_star by pair<object,reference> */
+  typedef std::pair<opm::object, opm::reference> matched_star;
+  /** @brief define matched_list by vector<matched_star> */
+  typedef std::vector<matched_star> matched_list;
 
   /**
    * @brief @c xym のベクタから @c ojectlist を生成する
@@ -491,6 +491,20 @@ namespace opm
           const opm::referencelist &src)
     { return opm::final::match(coeff, obj, d, d, src); }
   }
+
+  /**
+   * @brief matched list から wcs 情報をアップデートする
+   * 
+   * アップデートされる情報は
+   * @li CRPIXn - レファレンスピクセルの位置
+   * @li PCi_j  - ピクセル座標から中間座標への変換行列
+   * @param pwcs 更新すべき wcsprm 構造体へのポインタ
+   * @param matched マッチングした天体のリスト
+   * @return 推定した変換係数リスト
+   */
+  conversion
+  solve_wcsprm(wcsprm* pwcs, const opm::matched_list matched);
+
 }
 
 #endif /* OPM_H */
