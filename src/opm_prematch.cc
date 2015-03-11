@@ -31,8 +31,6 @@ namespace opm {
                                  [&](opm::triangle a, opm::triangle b)
                                  { return a > b; });
 
-      //printf("%.4f %.4f %.4f\n",(T-dy).y,(T+dy).y,T.y*d);
-      //printf("%.4f %.4f %ld\n",lb->y,ub->y,(size_t)(ub-lb));
       opm::triangles retval(lb,ub);
       return retval;
     }

@@ -223,7 +223,6 @@ namespace opm
     reference(const reference& obj)
       : xym(obj.x,obj.y,obj.m)
     {
-      unit_ = obj.unit_;
       xi_ = obj.xi_;
       eta_ = obj.eta_;
     }
@@ -503,7 +502,7 @@ namespace opm
    * @return 推定した変換係数リスト
    */
   conversion
-  solve_wcsprm(wcsprm* pwcs, const opm::matched_list matched);
+  update_wcsprm(wcsprm* pwcs, const opm::matched_list matched);
 
 }
 
