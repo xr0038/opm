@@ -19,6 +19,16 @@ wcsprm* wcs;
 wcsprm* new_wcs;
 
 void
+killgnuplot(int s)
+{
+  FILE* pid = popen("ps | awk '/gnuplot/{print $1}'","r");
+  int id;
+  if (fscanf(pid,"%d",&id)>0)
+    kill(id, SIGTERM);
+  exit(1);
+}
+
+void
 run_matching
 (const double Nmatched,
  const std::vector<opm::xym> &ref_,
@@ -26,12 +36,13 @@ run_matching
  const char* filename)
 {
   wcsini(0, 2, wcs);
-  wcs->crpix[0] = 512;
-  wcs->crpix[1] = 512;
+  wcs->crpix[0] = 512.0;
+  wcs->crpix[1] = 512.0;
   wcs->cdelt[0] = -0.00026278;
   wcs->cdelt[1] =  0.00026278;
   wcs->crval[0] =  160.;
   wcs->crval[1] =   35.;
+  wcs->equinox  = 2000.;
   sprintf(wcs->cunit[0],"deg");
   sprintf(wcs->cunit[1],"deg");
   sprintf(wcs->ctype[0],"RA---TAN");
@@ -51,16 +62,16 @@ run_matching
   for (auto &p : objdb) {
     std::vector<opm::conversion> x = opm::pre::match(p, .1, .1, refdb);
     for (auto &v : x) {
-      fprintf(stderr,
-              "(R11,R12,R21,R22,Tx,Ty) = \n"
-              "    (%.5lf, %.5lf, %.5lf, %.5lf, %.5lf, %.5lf)\n",
-              v[0],v[1],v[2],v[3],v[4],v[5]);
-      matched = opm::final::match(v, obj, 50., ref);
+      matched = opm::final::match(v, obj, 5., ref);
       fprintf(stderr,"matched.size(): %ld\n", matched.size());
       if (matched.size() >= Nmatched) goto match_success;
     }
   }
-  return;
+  delete(new_wcs);
+  delete(wcs);
+  pclose(fd);
+  killgnuplot(1);
+  exit(1);
 
  match_success:
   printf("## CROSS CHECK ##\n");
@@ -74,9 +85,9 @@ run_matching
     double pixcrd[2] = {p.first.x, p.first.y};
     wcsp2s(wcs,     1, 2, pixcrd, imgcrd, phi, theta, world, &status);
     wcsp2s(new_wcs, 1, 2, pixcrd, imgcrd, phi, theta, new_world, &status);
-    printf("(%8.4lf %8.4lf) (%8.4lf %8.4lf) [%lf %lf]\n",
+    printf("(%12.8lf %12.8lf) (%12.8lf %12.8lf) [%+lf %+lf]\n",
            world[0],world[1],new_world[0],new_world[1],
-           new_world[0]-p.second.x,new_world[1]-p.second.y);
+           3600.*(new_world[0]-p.second.x),3600.*(new_world[1]-p.second.y));
     fprintf(fd,"%.5lf %.5lf %.5lf %.5lf %.5lf %.5lf\n",
             world[0],world[1], new_world[0], new_world[1],
             p.second.x, p.second.y);
@@ -93,16 +104,6 @@ run_matching
   fprintf(fd, "filled lw 2 \n");
   fprintf(fd,"pause 3\n");
   fflush(fd);
-}
-
-void
-killgnuplot(int s)
-{
-  FILE* pid = popen("ps | awk '/gnuplot/{print $1}'","r");
-  int id;
-  if (fscanf(pid,"%d",&id)>0)
-    kill(id, SIGTERM);
-  exit(1);
 }
 
 int
@@ -126,7 +127,7 @@ main(int argc, char *argv[])
   fprintf(fd,"set mytics 5\n");
   
   run_matching(6, opm_test::small_ref, opm_test::small_permute,
-               "data/small_ref.sav");
+               "data/small_ref.sav"); exit(1);
   run_matching(6, opm_test::small_ref, opm_test::small_posshift,
                "data/small_ref.sav");
   run_matching(6, opm_test::small_ref, opm_test::small_posrotate,

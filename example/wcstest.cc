@@ -48,9 +48,16 @@ main(int argc, char* argv[])
       double pixcrd[2], imgcrd[2];
       double world[2] = {ref[i].x, ref[i].y};
       wcss2p(wcs, 1, 2, world, &phi, &theta, imgcrd, pixcrd, &status);
-      printf("(%6.2lf,%6.2lf)\n", world[0], world[1]);
-      printf("    => (%8.2lf,%8.2lf) native\n", phi, theta);
-      printf("    => (%8.1lf,%8.1lf) pixel\n", pixcrd[0], pixcrd[1]);
+      printf("(%12.8lf,%12.8lf)\n", world[0], world[1]);
+      printf("    => (%16.8lf,%16.8lf) native\n", phi, theta);
+      printf("    => (%16.8lf,%16.8lf) native\n",
+             cos(phi*M_PI/180.)*cos(theta*M_PI/180.)/M_PI*180.,
+             sin(phi*M_PI/180.)*cos(theta*M_PI/180.)/M_PI*180.);
+      printf("    => (%16.8lf,%16.8lf) image\n", imgcrd[0], imgcrd[1]);
+      printf("    => (%16.8lf,%16.8lf) logical\n", 
+             imgcrd[0]/wcs->cdelt[0]+wcs->crpix[0],
+             imgcrd[1]/wcs->cdelt[1]+wcs->crpix[1]);
+      printf("    => (%16.8lf,%16.8lf) pixel\n", pixcrd[0], pixcrd[1]);
   }
 
   delete wcs;
