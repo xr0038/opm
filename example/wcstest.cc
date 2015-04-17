@@ -1,7 +1,27 @@
 #include <stdio.h>
+#include <cmath>
 #include <wcslib/wcs.h>
 #include "opm.h"
 #include "data/small_ref.h"
+
+double
+gnx(double lam, double phi, double lam0, double phi0)
+{
+  double d2r = M_PI/180.;
+  lam *= d2r; phi *= d2r; lam0 *= d2r; phi0 *= d2r;
+  double cosC =
+    sin(phi0)*sin(phi)+cos(phi0)*cos(phi)*cos(lam-lam0);
+  return (cos(phi)*sin(lam-lam0))/cosC/d2r;
+}
+double
+gny(double lam, double phi, double lam0, double phi0)
+{
+  double d2r = M_PI/180.;
+  lam *= d2r; phi *= d2r; lam0 *= d2r; phi0 *= d2r;
+  double cosC =
+    sin(phi0)*sin(phi)+cos(phi0)*cos(phi)*cos(lam-lam0);
+  return (cos(phi0)*sin(phi)-sin(phi0)*cos(phi)*cos(lam-lam0))/cosC/d2r;
+}
 
 int
 main(int argc, char* argv[])
@@ -50,9 +70,12 @@ main(int argc, char* argv[])
       wcss2p(wcs, 1, 2, world, &phi, &theta, imgcrd, pixcrd, &status);
       printf("(%12.8lf,%12.8lf)\n", world[0], world[1]);
       printf("    => (%16.8lf,%16.8lf) native\n", phi, theta);
-      printf("    => (%16.8lf,%16.8lf) native\n",
-             cos(phi*M_PI/180.)*cos(theta*M_PI/180.)/M_PI*180.,
-             sin(phi*M_PI/180.)*cos(theta*M_PI/180.)/M_PI*180.);
+      double r = 180./M_PI / tan(theta*M_PI/180.);
+      printf("    => (%16.8lf,%16.8lf) calculated\n",
+             r*sin(phi*M_PI/180.), -r*cos(phi*M_PI/180.));
+      printf("    => (%16.8lf,%16.8lf) calculated\n",
+             gnx(ref[i].x, ref[i].y, wcs->crval[0], wcs->crval[1]),
+             gny(ref[i].x, ref[i].y, wcs->crval[0], wcs->crval[1]));
       printf("    => (%16.8lf,%16.8lf) image\n", imgcrd[0], imgcrd[1]);
       printf("    => (%16.8lf,%16.8lf) logical\n", 
              imgcrd[0]/wcs->cdelt[0]+wcs->crpix[0],

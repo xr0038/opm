@@ -127,7 +127,7 @@ main(int argc, char *argv[])
   fprintf(fd,"set mytics 5\n");
   
   run_matching(6, opm_test::small_ref, opm_test::small_permute,
-               "data/small_ref.sav"); exit(1);
+               "data/small_ref.sav");
   run_matching(6, opm_test::small_ref, opm_test::small_posshift,
                "data/small_ref.sav");
   run_matching(6, opm_test::small_ref, opm_test::small_posrotate,
