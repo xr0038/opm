@@ -90,13 +90,13 @@ namespace opm {
 
     auto res = opm::first_solver({x_,y_,xx,xy,yy,N},{xa,ya,a_,xd,yd,d_});
 #ifdef DEBUG
-    printf("(c,s,x,y) = ( %lf %lf %lf %lf )\n",
-           res[0], res[1], res[2], res[3]);
+    fprintf(stderr,"(c,s,x,y) = ( %lf %lf %lf %lf )\n",
+            res[0], res[1], res[2], res[3]);
 #endif
     double &&x0 = pwcs->crpix[0]-res[2];
     double &&y0 = pwcs->crpix[1]-res[3];
-    double &&CRPIX1 =   res[0]*x0 + res[1]*y0;
-    double &&CRPIX2 = - res[1]*x0 + res[0]*y0;
+    double &&CRPIX1 = res[2] + res[0]*x0 + res[1]*y0;
+    double &&CRPIX2 = res[3] - res[1]*x0 + res[0]*y0;
     pwcs->crpix[0] = CRPIX1;
     pwcs->crpix[1] = CRPIX2;
     double cc = pwcs->pc[0], ss = pwcs->pc[2];

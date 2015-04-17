@@ -22,45 +22,6 @@
  */
 namespace opm
 {
-  constexpr double deg_to_rad = M_PI/180.0;
-  constexpr double min_to_rad = M_PI/180.0/60.0;
-  constexpr double sec_to_rad = M_PI/180.0/3600.0;
-  constexpr double rad_to_deg = 180.0/M_PI;
-  constexpr double rad_to_min = 180.0*60.0/M_PI;
-  constexpr double rad_to_sec = 180.0*3600.0/M_PI;
-
-  // /** @brief 簡易的な wcs 情報を保持する構造体 */
-  // typedef struct {
-  //   double CRPIX1;
-  //   double CRPIX2;
-  //   double CRVAL1;
-  //   double CRVAL2;
-  //   double PIXSCALE;
-  // } wcsinfo;
-
-  // /** @brief 天体の座標がどの単位で与えられているかを表す */
-  // enum LB_UNIT {
-  //   DEGREE,
-  //   ARCMIN,
-  //   ARCSEC,
-  //   RADIAN,
-  //   PIXEL,
-  // };
-
-
-  // static inline double
-  // lb_unit_conversion(const opm::LB_UNIT unit)
-  // {
-  //   switch (unit) {
-  //   case opm::LB_UNIT::DEGREE: return deg_to_rad; break;
-  //   case opm::LB_UNIT::ARCMIN: return min_to_rad; break;
-  //   case opm::LB_UNIT::ARCSEC: return sec_to_rad; break;
-  //   case opm::LB_UNIT::RADIAN: return 1.0; break;
-  //   default: return 1.0; break;
-  //   };
-  // }
-
-
   /**
    * @brief 二次元空間での座標
    * @note @c x, @c y 座標はそれぞれ実数 (@c double) 値をとる
@@ -236,34 +197,10 @@ namespace opm
     double
     xi() const
     { return xi_; }
-    //   if (unit == opm::LB_UNIT::PIXEL) return x;
-    //   const double &&c  = lb_unit_conversion(unit);
-    //   const double &&xc  = this->x * c;
-    //   const double &&yc  = this->y * c;
-    //   const double &&L = wcs.CRVAL1 * c;
-    //   const double &&B = wcs.CRVAL2 * c;
-    //   const double &&F = wcs.PIXSCALE * c;
-    //   return (std::cos(yc)*std::sin(xc-L)
-    //           /(std::sin(B)*std::sin(yc) 
-    //             + std::cos(B)*std::cos(yc)*std::cos(xc-L))) / F;
-    // }
     double
     eta() const
     { return eta_; }
-    //   if (unit == opm::LB_UNIT::PIXEL) return y;
-    //   const double &&c  = lb_unit_conversion(unit);
-    //   const double &&xc  = this->x * c;
-    //   const double &&yc  = this->y * c;
-    //   const double &&L = wcs.CRVAL1 * c;
-    //   const double &&B = wcs.CRVAL2 * c;
-    //   const double &&F = wcs.PIXSCALE * c;
-    //   return  ((std::sin(B)*std::cos(yc)*std::cos(xc-L) 
-    //             - std::cos(B)*std::sin(yc))
-    //            /(std::sin(B)*std::sin(yc) 
-    //              + std::cos(B)*std::cos(yc)*std::cos(xc-L))) / F;
-    // }
   private:
-    double unit_;
     double xi_;
     double eta_;
     void
@@ -389,9 +326,10 @@ namespace opm
                          wcsprm* pwcs);
   /**
    * @brief @c objectlist から triangle list を生成する
-   * @note @c sl は sorted objectlist でなければならない
-   * @param sl sort 済みの @c objectlist
-   * @return 作成した triangle list
+   * @note 生成後に @c objectlist をソートしてはいけない
+   * @param it_begin triangle list を生成する @c objectlist の先頭イテレータ
+   * @param it_end triangle list を生成する @c objectlist の末尾イテレータ
+   * @return 生成した triangle list
    */
   opm::triangles
   generate_triangles
@@ -399,21 +337,32 @@ namespace opm
    const opm::objectlist::const_iterator &it_end);
   /**
    * @brief @c objectlist から triangle list を生成する
-   * @note @c sl は sorted objectlist でなければならない
-   * @param sl sort 済みの @c objectlist
-   * @return 作成した triangle list
+   * @note 生成後に @c objectlist をソートしてはいけない
+   * @param ol triangle list を生成する @c objectlist
+   * @return 生成した triangle list
    */
   inline opm::triangles
-  generate_triangles(const opm::objectlist &sl)
-  { return generate_triangles(sl.cbegin(), sl.cend()); }
+  generate_triangles(const opm::objectlist &ol)
+  { return generate_triangles(ol.cbegin(), ol.cend()); }
+  /**
+   * @brief @c objectlist から triangle list を生成する
+   * @note 生成後に @c objectlist をソートしてはいけない
+   * @param ol triangle list を生成する @c objectlist
+   * @param s triangle list を生成する @c object の先頭位置
+   * @param n triangle list を生成する @c object の総数
+   * @return 生成した triangle list
+   */
+  inline opm::triangles
+  generate_triangles(const opm::objectlist &ol,
+                     const size_t s, const size_t n)
+  { return generate_triangles(ol.cbegin()+s, ol.cbegin()+s+n); }
 
   /**
    * @brief @c referencelist から triangle database を生成する
-   * @note @c sl は sorted starlist でなければならない
-   * @param it_begin sort 済みの @c referencelist
-   * @param it_end sort 済みの @c referencelist
-   * @param wcsinfo
-   * @return 作成した triangle database
+   * @note 生成後に @c referencelist をソートしてはいけない
+   * @param it_begin database を生成する @c referencelist の先頭イテレータ
+   * @param it_end database を生成する @c referencelist の末尾イテレータ
+   * @return 生成した triangle database
    */
   opm::database
   generate_database
@@ -421,15 +370,25 @@ namespace opm
    const opm::referencelist::const_iterator &it_end);
   /**
    * @brief @c referencelist から triangle database を生成する
-   * @note @c sl は sorted referencelist でなければならない
-   * @param sl sort 済みの @c referencelist
-   * @param wcsinfo
-   * @return 作成した triangle database
+   * @note 生成後に @c referencelist をソートしてはいけない
+   * @param rl database を生成する @c referencelist
+   * @return 生成した triangle database
    */
   inline opm::database
-  generate_database
-  (const opm::referencelist &sl)
-  { return generate_database(sl.cbegin(), sl.cend()); }
+  generate_database(const opm::referencelist &rl)
+  { return generate_database(rl.cbegin(), rl.cend()); }
+  /**
+   * @brief @c referencelist から triangle database を生成する
+   * @note 生成後に @c referencelist をソートしてはいけない
+   * @param rl database を生成する @c referencelist
+   * @param s triangle list を生成する @c object の先頭位置
+   * @param n triangle list を生成する @c object の総数
+   * @return 生成した triangle database
+   */
+  inline opm::database
+  generate_database(const opm::referencelist &rl,
+                    const size_t s, const size_t n)
+  { return generate_database(rl.cbegin()+s, rl.cbegin()+s+n); }
 
   /**
    * @brief 座標の線形変換を定義するセット
