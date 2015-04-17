@@ -28,9 +28,9 @@ namespace opm {
       double D =
         std::sqrt((x_*a_+y_*d_-N*(xa+yd))*(x_*a_+y_*d_-N*(xa+yd))
                   +(x_*d_-y_*a_-N*(xd-ya))*(x_*d_-y_*a_-N*(xd-ya)));
-      double L = (x_*x_+y_*y_-N*(xx+yy)+D)/N;
-      double cc = (x_*a_+y_*d_-N*(xa+yd))/(x_*x_+y_*y_-N*(xx+yy+L));
-      double ss = (x_*d_-y_*a_-N*(xd-ya))/(x_*x_+y_*y_-N*(xx+yy+L));
+      double L =  (x_*x_+y_*y_-N*(xx+yy)+D)/N;
+      double cc = (x_*a_+y_*d_-N*(xa+yd))/(x_*x_+y_*y_-N*(xx+yy-L));
+      double ss = (x_*d_-y_*a_-N*(xd-ya))/(x_*x_+y_*y_-N*(xx+yy-L));
       double Tx = (a_-x_*cc+y_*ss)/N;
       double Ty = (d_-y_*cc-x_*ss)/N;
       return std::array<double, 4>{cc,ss,Tx,Ty};
@@ -41,6 +41,9 @@ namespace opm {
   {
     const auto &s = matched.cbegin();
     const auto &e = matched.cend();
+
+    const auto &dx = pwcs->cdelt[0];
+    const auto &dy = pwcs->cdelt[1];
 
     if (pwcs == NULL) {
       fprintf(stderr, "error: wcsprm is not defined.\n");
@@ -54,22 +57,22 @@ namespace opm {
 
     double xa = std::accumulate
       (s,e,0.,[&](double s, opm::matched_star p)
-       { return s + p.first.x*(p.second.xi()); });
+       { return s + p.first.x*(p.second.xi()/dx); });
     double ya = std::accumulate
       (s,e,0.,[&](double s, opm::matched_star p)
-       { return s + p.first.y*(p.second.xi()); });
+       { return s + p.first.y*(p.second.xi()/dx); });
     double a_ = std::accumulate
       (s,e,0.,[&](double s, opm::matched_star p)
-       { return s + (p.second.xi()); });
+       { return s + (p.second.xi()/dx); });
     double xd = std::accumulate
       (s,e,0.,[&](double s, opm::matched_star p)
-       { return s + p.first.x*(p.second.eta()); });
+       { return s + p.first.x*(p.second.eta()/dy); });
     double yd = std::accumulate
       (s,e,0.,[&](double s, opm::matched_star p)
-       { return s + p.first.y*(p.second.eta()); });
+       { return s + p.first.y*(p.second.eta()/dy); });
     double d_ = std::accumulate
       (s,e,0.,[&](double s, opm::matched_star p)
-       { return s + (p.second.eta()); });
+       { return s + (p.second.eta()/dy); });
 
     double x_ = std::accumulate
       (s,e,0.,[&](double s, opm::matched_star p)
@@ -93,18 +96,20 @@ namespace opm {
     fprintf(stderr,"(c,s,x,y) = ( %lf %lf %lf %lf )\n",
             res[0], res[1], res[2], res[3]);
 #endif
-    double &&x0 = pwcs->crpix[0]-res[2];
-    double &&y0 = pwcs->crpix[1]-res[3];
-    double &&CRPIX1 =   res[0]*x0 + res[1]*y0;
-    double &&CRPIX2 = - res[1]*x0 + res[0]*y0;
+    double &cc = res[0];
+    double &ss = res[1];
+    double &Tx = res[2];
+    double &Ty = res[3];
+    double &&CRPIX1 = - (  cc*Tx + ss*Ty );
+    double &&CRPIX2 = - (- ss*Tx + cc*Ty );
     pwcs->crpix[0] = CRPIX1;
     pwcs->crpix[1] = CRPIX2;
-    double cc = pwcs->pc[0], ss = pwcs->pc[2];
-    pwcs->pc[0] =   res[0]*cc - res[1]*ss;
-    pwcs->pc[1] = - res[0]*ss - res[1]*cc;
-    pwcs->pc[2] =   res[1]*cc + res[0]*ss;
-    pwcs->pc[3] = - res[1]*ss + res[0]*cc;
+    pwcs->pc[0] =  cc;
+    pwcs->pc[1] = -ss;
+    pwcs->pc[2] =  ss;
+    pwcs->pc[3] =  cc;
     if (wcsset(pwcs) !=0) {
+    wcsprt(pwcs);
       fprintf(stderr,"error: wcsset failed.\n");
       exit(1);
     };

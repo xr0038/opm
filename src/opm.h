@@ -184,7 +184,9 @@ namespace opm
     reference(const reference& obj)
       : xym(obj.x,obj.y,obj.m)
     {
-      xi_ = obj.xi_;
+      px_ = obj.px_;
+      py_ = obj.py_;
+      xi_  = obj.xi_;
       eta_ = obj.eta_;
     }
     /** @brief @c xym をコピーするコンストラクタ */
@@ -195,26 +197,37 @@ namespace opm
       init_celestial(pwcs);
     }
     double
+    px() const
+    { return px_; }
+    double
+    py() const
+    { return py_; }
+    double
     xi() const
     { return xi_; }
     double
     eta() const
     { return eta_; }
   private:
+    double px_;
+    double py_;
     double xi_;
     double eta_;
     void
     init_celestial(wcsprm* pwcs)
     {
       if (pwcs == NULL) {
+        px_ = x; py_ = y;
         xi_ = x; eta_ = y;
       } else {
         int status;
         double imgcrd[2], pixcrd[2], phi[1], theta[1];
         double world[2] = {this->x, this->y};
         wcss2p(pwcs, 1, 2, world, phi, theta, imgcrd, pixcrd, &status);
-        xi_  = pixcrd[0];
-        eta_ = pixcrd[1];
+        px_ = pixcrd[0];
+        py_ = pixcrd[1];
+        xi_  = imgcrd[0];
+        eta_ = imgcrd[1];
       }
     }
   };

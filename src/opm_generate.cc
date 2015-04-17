@@ -59,7 +59,7 @@ namespace opm
       retval.push_back(opm::reference(p,wcs_));
     std::sort(retval.begin(), retval.end(),
               [&](const opm::reference l, const opm::reference r)
-              { return l.eta() < r.eta(); });
+              { return l.py() < r.py(); });
     return retval;
   }
 
@@ -129,7 +129,8 @@ namespace opm
     } /* for-loop i */
 
     sort(return_list.begin(),return_list.end(),
-         [&](opm::triangle a, opm::triangle b){ return a.x*a.y > b.x*b.y; });
+         [&](opm::triangle a, opm::triangle b)
+         { return a.x*a.y > b.x*b.y; });
     return return_list;
   }
 
@@ -163,9 +164,9 @@ namespace opm
           const opm::reference* pA = *(it+i);
           const opm::reference* pB = *(it+j);
           const opm::reference* pC = *(it+k);
-          const opm::xym tA = {pA->xi(),pA->eta()};
-          const opm::xym tB = {pB->xi(),pB->eta()};
-          const opm::xym tC = {pC->xi(),pC->eta()};
+          const opm::xym tA = {pA->px(),pA->py()};
+          const opm::xym tB = {pB->px(),pB->py()};
+          const opm::xym tC = {pC->px(),pC->py()};
           double c = sqdist(tA,tB);
           double a = sqdist(tB,tC);
           double b = sqdist(tC,tA);

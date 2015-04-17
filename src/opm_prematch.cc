@@ -118,12 +118,12 @@ namespace opm {
       const double &x0 = obj.v[0]->x, &y0 = obj.v[0]->y;
       const double &x1 = obj.v[1]->x, &y1 = obj.v[1]->y;
       const double &x2 = obj.v[2]->x, &y2 = obj.v[2]->y;
-      const double &&x0_ref = ((opm::reference*)ref.v[0])->xi();
-      const double &&y0_ref = ((opm::reference*)ref.v[0])->eta();
-      const double &&x1_ref = ((opm::reference*)ref.v[1])->xi();
-      const double &&y1_ref = ((opm::reference*)ref.v[1])->eta();
-      const double &&x2_ref = ((opm::reference*)ref.v[2])->xi();
-      const double &&y2_ref = ((opm::reference*)ref.v[2])->eta();
+      const double &&x0_ref = ((opm::reference*)ref.v[0])->px();
+      const double &&y0_ref = ((opm::reference*)ref.v[0])->py();
+      const double &&x1_ref = ((opm::reference*)ref.v[1])->px();
+      const double &&y1_ref = ((opm::reference*)ref.v[1])->py();
+      const double &&x2_ref = ((opm::reference*)ref.v[2])->px();
+      const double &&y2_ref = ((opm::reference*)ref.v[2])->py();
 
       double D = x0*(y2-y1) + y0*(x1-x2) + y1*x2 - x1*y2;
       double R11 = ( (y2-y1)*x0_ref + (y0-y2)*x1_ref + (y1-y0)*x2_ref ) / D;

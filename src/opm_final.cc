@@ -37,11 +37,11 @@ namespace opm {
       auto lb = 
         std::lower_bound(src.begin(),src.end(),Tmd,
                          [&](opm::reference l, opm::reference r )
-                         { return l.eta() < r.eta(); });
+                         { return l.py() < r.py(); });
       auto ub 
         = std::upper_bound(src.begin(),src.end(),Tpd,
                            [&](opm::reference l, opm::reference r )
-                           { return l.eta() < r.eta(); });
+                           { return l.py() < r.py(); });
       opm::referencelist retval(lb,ub);
       return retval;
     }
@@ -51,7 +51,7 @@ namespace opm {
     (const opm::object &T, const opm::reference &R,
      const double &dx, const double &dy)
     {
-      return std::abs(T.x-R.xi()) < dx && std::abs(T.y-R.eta()) < dy;
+      return std::abs(T.x-R.px()) < dx && std::abs(T.y-R.py()) < dy;
     }
 
     inline opm::referencelist
